@@ -1,0 +1,21 @@
+{
+  "dependencies": {
+    "dateformat": "1.0.12",
+    "rss-parser": "3.7.2"
+  },
+  "description": "A widget that shows your rss feeds",
+  "hooks": [
+    { "hook": "filter:admin.header.build", "method": "filterAdminHeaderBuild" },
+    { "hook": "filter:widget.render:rss", "method": "filterWidgetRenderRss" },
+    { "hook": "filter:widgets.getWidgets", "method": "filterWidgetsGetWidgets" },
+    { "hook": "static:app.load", "method": "staticAppLoad" }
+  ],
+  "id": "nodebb-widget-rss",
+  "library": "plugin.js",
+  "name": "NodeBB RSS widget",
+  "nbbpm": {
+    "compatibility": "^1.12.2"
+  },
+  "templates": "templates",
+  "url": "https://github.com/Jenkler/nodebb-widget-rss"
+}
