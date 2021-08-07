@@ -1,111 +1,82 @@
 'use strict';
 
-const dateformat = require('dateformat');
 const meta = require.main.require('./src/meta');
 const rssparser = new (require('rss-parser'));
-
 let nodebb = {};
-let rss = {};
-rss.updated = Math.round(new Date().getTime() / 1000);
+let rss = { data: {}, updated: Math.round(new Date().getTime() / 1000) };
 
-async function updateFeed(force = false) {
+const updateFeed = async (force = false) => {
   rss.now = Math.round(new Date().getTime() / 1000);
-
   if(force || rss.now - rss.updated > 3600) {
     let data = {};
-    let urls = meta.config['rss:urls'].split(',');
-    for(let i = 0; i < urls.length; i++) {
-      let url = urls[i].trim();  
-      if (/^(f|ht)tps?:\/\//i.test(url)) urls[i] = url;
-      else delete urls[i];
-    }
+    let settings = await meta.settings.get('rss');
+    let limit = Number(settings?.limit ?? 10) ? Number(settings?.limit ?? 10) : 10;
+    let urls = (settings?.urls ?? '').split(',').map((x) => { return x.trim().split(' ')[0]; }).filter((x) => {
+      if(/^(f|ht)tps?:\/\//i.test(x)) return x
+      else return false;
+    });
+    if(urls[0] == undefined) return false;
     for(let i = 0; i < urls.length; i++) {
       try {
         let count = 0;
         let feed = await rssparser.parseURL(urls[i]);
         for(let key in feed.items) {
-          data[dateformat(feed.items[key].pubDate, "yyyy-mm-dd HH:MM")] = {
+          count++;
+          data[new Date(Date.parse(feed.items[key].pubDate)).toISOString().substr(0, 16).replace('T', ' ')] = {
             "content": feed.items[key].content.replace("<![CDATA[", "").replace("]]>", ""),
             "link": feed.items[key].link,
             "title": feed.items[key].title
           };
-          if(count > 8) break;
-          count++;
-       }
-     }
-     catch(e) { console.error(e) }
+          if(count >= limit) break;
+        }
+      }
+      catch(e) { console.error(e) }
     }
-    rss.data = rsort(data);
+    rss.data = await rsort(data);
     rss.updated = Math.round(new Date().getTime() / 1000);
     return true;
-  } 
+  }
   else { return false }
 }
-
-function keyExists(data) {
-  let args = Array.prototype.slice.call(arguments, 1);
-  for(var i = 0; i < args.length; i++) {
-    if(!data || !data.hasOwnProperty(args[i])) {
-      return false;
-    }
-    data = data[args[i]];
-  }
-  return true;
-}
-
-function renderAdmin(req, res, next) {
+const renderAdmin = async (req, res) => {
   res.render('admin/rss', {});
 }
-
-function rsort(data) {
-  const out = {};
-  Object.keys(data).sort().reverse().forEach(function(key) {
-    out[key] = data[key];
-  });
-  return out;
+const rsort = async (data) => {
+  return Object.keys(data).sort().reverse().reduce((r, k) => (r[k] = data[k], r), {});
 }
 
-exports.filterAdminHeaderBuild = function(header, callback) {
-  header.plugins.push({
-    route: '/rss',
+exports.filterAdminHeaderBuild = async (data) => {
+  data.plugins.push({
     icon: 'fa-link',
-    name: 'RSS'
+    name: 'RSS',
+    route: '/rss'
   });
-  callback(null, header);
+  return data;
 };
-
-exports.filterWidgetRenderRss = function(data, callback) {
+exports.filterWidgetRenderRss = async (data) => {
   let body = '<table id="nyheter" class="table table-striped">';
-  if(keyExists(meta.config, 'rss:urls')) {
-    updateFeed();
-    for(let key in rss.data) {
-      body += '<tr><td><a href="' + rss.data[key]['link'] + '" target="_blank">' + rss.data[key]['title'] + '</a>';
-      body += '<span class="date">' + key + '</span><br/><span>' + rss.data[key]['content'] + '</span><br/></td></tr>';
-    }
+  await updateFeed();
+  for(let key in rss.data) {
+    body += '<tr><td><a href="' + rss.data[key]['link'] + '" target="_blank">' + rss.data[key]['title'] + '</a>';
+    body += '<span class="date">' + key + '</span><br/><span>' + rss.data[key]['content'] + '</span><br/></td></tr>';
   }
   body += '</table>';
-  nodebb.app.render('widgets/rss', { title: data.data.title, body: body }, function(err, html) {
-    data.html = html;
-    callback(err, data);
-  });
+  data.html = await nodebb.app.renderAsync('widgets/rss', { body: body, title: data.data.title });
+  return data;
 };
-
-exports.filterWidgetsGetWidgets = function(data, callback) {
-  data = data.concat([
-  {
-    widget: 'rss',
-    name: 'RSS',
+exports.filterWidgetsGetWidgets = async (data) => {
+  data.push({
     content: '',
-    description: 'A widget that shows your rss feed'
-  }]);
-  callback(null, data);
+    description: 'A widget that shows your rss feed',
+    name: 'RSS',
+    widget: 'rss'
+  });
+  return data;
 };
-
-exports.staticAppLoad = function(data, callback) {
+exports.staticAppLoad = async (data) => {
   console.log('Loading Jenkler RSS widget ' + require('./package.json').version);
   data.router.get('/admin/rss', data.middleware.admin.buildHeader, renderAdmin);
   data.router.get('/api/admin/rss', renderAdmin);
   nodebb.app = data.app;
-  if(keyExists(meta.config, 'rss:urls')) updateFeed(true);
-  callback();
+  await updateFeed(true);
 };
