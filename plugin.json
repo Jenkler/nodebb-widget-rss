@@ -11,7 +11,7 @@
   "library": "plugin.js",
   "name": "NodeBB RSS",
   "nbbpm": {
-    "compatibility": "^1.17.2"
+    "compatibility": "^1.18.0"
   },
   "templates": "templates",
   "url": "https://github.com/Jenkler/nodebb-widget-rss"
