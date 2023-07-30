@@ -6,12 +6,10 @@
 #nyheter iframe { max-width: 100%; }
 #nyheter td { border-top: 1px solid #ddd; padding: 8px; }
 #nyheter tr:nth-of-type(odd) { background-color: #f9f9f9; }
-.panel.panel-info {overflow: hidden; overflow-wrap: break-word; }
+.rss-widget-card {overflow: hidden; overflow-wrap: break-word; }
 </style>
 
-<div class="panel panel-info">
-  <div class="panel-heading">
-    <h3 class="panel-title">{title}</h3>
-  </div>
-  <div class="panel-body">{body}</div>
+<div class="card mb-3 rss-widget-card">
+  <div class="card-header text-bg-info">{title}</div>
+  <div class="card-body">{body}</div>
 </div>

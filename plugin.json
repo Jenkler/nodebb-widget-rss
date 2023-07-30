@@ -1,5 +1,4 @@
 {
-  "acpScripts": [ "admin.js" ],
   "description": "A widget that shows your rss feeds",
   "hooks": [
     { "hook": "filter:admin.header.build", "method": "filterAdminHeaderBuild" },
@@ -10,9 +9,9 @@
   "id": "nodebb-widget-rss",
   "library": "plugin.js",
   "name": "NodeBB RSS",
-  "nbbpm": {
-    "compatibility": "^1.18.0"
-  },
   "templates": "templates",
-  "url": "https://github.com/Jenkler/nodebb-widget-rss"
+  "url": "https://github.com/Jenkler/nodebb-widget-rss",
+  "modules": {
+    "../admin/plugins/rss-widget.js": "public/admin.js"
+  }
 }
