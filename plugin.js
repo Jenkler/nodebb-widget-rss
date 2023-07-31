@@ -1,5 +1,6 @@
 'use strict';
 
+const helpers = require.main.require('./src/routes/helpers');
 const meta = require.main.require('./src/meta');
 const rssparser = new (require('rss-parser'));
 let nodebb = {};
@@ -39,7 +40,9 @@ const updateFeed = async (force = false) => {
   else { return false }
 }
 const renderAdmin = async (req, res) => {
-  res.render('admin/rss', {});
+  res.render('admin/plugins/rss-widget', {
+    title: 'RSS Widget',
+  });
 }
 const rsort = async (data) => {
   return Object.keys(data).sort().reverse().reduce((r, k) => (r[k] = data[k], r), {});
@@ -48,8 +51,8 @@ const rsort = async (data) => {
 exports.filterAdminHeaderBuild = async (data) => {
   data.plugins.push({
     icon: 'fa-link',
-    name: 'RSS',
-    route: '/rss'
+    name: 'RSS Widget',
+    route: '/plugins/rss-widget'
   });
   return data;
 };
@@ -75,8 +78,7 @@ exports.filterWidgetsGetWidgets = async (data) => {
 };
 exports.staticAppLoad = async (data) => {
   console.log('Loading Jenkler RSS widget ' + require('./package.json').version);
-  data.router.get('/admin/rss', data.middleware.admin.buildHeader, renderAdmin);
-  data.router.get('/api/admin/rss', renderAdmin);
+  helpers.setupAdminPageRoute(data.router, '/admin/plugins/rss-widget', renderAdmin);
   nodebb.app = data.app;
   await updateFeed(true);
 };
